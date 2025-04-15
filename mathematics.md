@@ -1,6 +1,6 @@
 # Mathematical Analysis Documentation for Cryptocurrency Metrics
 
-This document consolidates the mathematical equations and variables used for fundamental, technical, quantitative, and peer analysis of cryptocurrency metrics. It is intended for use in a GitHub repository to provide clear, readable documentation alongside an existing README.
+This document consolidates the mathematical equations and variables used for fundamental, technical, quantitative, and peer analysis of cryptocurrency metrics within the /src folder.
 
 ## Table of Contents
 1. [Fundamental Analysis](#fundamental-analysis)
