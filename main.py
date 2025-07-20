@@ -26,7 +26,7 @@ COIN_CONFIG = {
 }
 
 # Groq API setup
-GROQ_API_KEY = "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"
+GROQ_API_KEY = ""
 GROQ_MODEL = "llama-3.3-70b-versatile"
 groq_client = Groq(api_key=GROQ_API_KEY)
 
