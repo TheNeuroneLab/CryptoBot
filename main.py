@@ -6,10 +6,10 @@ import base64
 from datetime import datetime, timedelta
 import re
 from groq import Groq  # Import Groq SDK
-from peer import fetch_binance_data, calculate_nvt_ratio, calculate_sharpe_ratio, calculate_price_volume_ratio, calculate_mayer_multiple, calculate_speculative_signal, calculate_price_stability_ratio, calculate_rsi, calculate_macd
-from fundamental import calculate_market_cap_growth, calculate_volume_cagr, calculate_liquidity_ratio, calculate_price_momentum, calculate_volume_momentum, calculate_volatility_adjusted_market_cap, calculate_turnover_ratio, calculate_volume_to_price_ratio, calculate_deuv, calculate_price_to_volatility_cost, calculate_regulatory_discount
-from quantitative import calculate_cuv, calculate_volume_composition, calculate_volatility_reduction, calculate_risk_adjusted_volume_discount, calculate_trading_volume, calculate_volume_volatility, calculate_price_correlation, calculate_price_dcf, calculate_price_volume_ratio_alt
-from technical import calculate_sma_50, calculate_ema_20, calculate_bollinger_width, calculate_atr, calculate_obv, calculate_vwap, calculate_roc, calculate_stochastic_k, calculate_williams_r, calculate_momentum, calculate_volume_oscillator, calculate_cmo, calculate_channel_breakout
+from analysis.peer import fetch_binance_data, calculate_nvt_ratio, calculate_sharpe_ratio, calculate_price_volume_ratio, calculate_mayer_multiple, calculate_speculative_signal, calculate_price_stability_ratio, calculate_rsi, calculate_macd
+from analysis.fundamental import calculate_market_cap_growth, calculate_volume_cagr, calculate_liquidity_ratio, calculate_price_momentum, calculate_volume_momentum, calculate_volatility_adjusted_market_cap, calculate_turnover_ratio, calculate_volume_to_price_ratio, calculate_deuv, calculate_price_to_volatility_cost, calculate_regulatory_discount
+from analysis.quantitative import calculate_cuv, calculate_volume_composition, calculate_volatility_reduction, calculate_risk_adjusted_volume_discount, calculate_trading_volume, calculate_volume_volatility, calculate_price_correlation, calculate_price_dcf, calculate_price_volume_ratio_alt
+from analysis.technical import calculate_sma_50, calculate_ema_20, calculate_bollinger_width, calculate_atr, calculate_obv, calculate_vwap, calculate_roc, calculate_stochastic_k, calculate_williams_r, calculate_momentum, calculate_volume_oscillator, calculate_cmo, calculate_channel_breakout
 
 # Binance API setup
 BINANCE_API_URL = "https://api.binance.com/api/v3"
@@ -26,7 +26,7 @@ COIN_CONFIG = {
 }
 
 # Groq API setup
-GROQ_API_KEY = ""
+GROQ_API_KEY = "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"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 groq_client = Groq(api_key=GROQ_API_KEY)
 
