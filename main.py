@@ -263,10 +263,10 @@ if query:
         start_ts, end_ts = configure_dates(days, start_date, end_date)
         
         # Override date parameters in scripts
-        from peer import START_DATE, END_DATE
-        from fundamental import START_DATE, END_DATE
-        from quantitative import START_DATE, END_DATE
-        from technical import START_DATE, END_DATE
+        from analysis.peer import START_DATE, END_DATE
+        from analysis.fundamental import START_DATE, END_DATE
+        from analysis.quantitative import START_DATE, END_DATE
+        from analysis.technical import START_DATE, END_DATE
         START_DATE = start_ts
         END_DATE = end_ts
         
