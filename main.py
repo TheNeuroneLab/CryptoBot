@@ -1,4 +1,5 @@
 import streamlit as st
+import json
 import os
 import pandas as pd
 import requests
@@ -11,6 +12,7 @@ from analysis.fundamental import calculate_market_cap_growth, calculate_volume_c
 from analysis.quantitative import calculate_cuv, calculate_volume_composition, calculate_volatility_reduction, calculate_risk_adjusted_volume_discount, calculate_trading_volume, calculate_volume_volatility, calculate_price_correlation, calculate_price_dcf, calculate_price_volume_ratio_alt
 from analysis.technical import calculate_sma_50, calculate_ema_20, calculate_bollinger_width, calculate_atr, calculate_obv, calculate_vwap, calculate_roc, calculate_stochastic_k, calculate_williams_r, calculate_momentum, calculate_volume_oscillator, calculate_cmo, calculate_channel_breakout
 
+load_dotenv()
 # Binance API setup
 BINANCE_API_URL = "https://api.binance.com/api/v3"
 
@@ -26,9 +28,82 @@ COIN_CONFIG = {
 }
 
 # Groq API setup
-GROQ_API_KEY = ""
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 groq_client = Groq(api_key=GROQ_API_KEY)
+
+def extract_llm_query(query):
+    prompt = f"""
+    You are a crypto assistant that classifies user queries into structured data.
+
+    Given a user question about cryptocurrency, extract and return the following information as JSON:
+
+    - "coin": A list of coin names mentioned (e.g., Bitcoin, Ethereum).
+    - "metric": A list of specific metrics the user is asking about.
+    - "time_frame": The time frame mentioned (e.g., "last week", "past 30 days").
+    - "analysis_type": A list of analysis types that the extracted metrics belong to. Choose from:
+    - "Peer"
+    - "Fundamental"
+    - "Quantitative"
+    - "Technical"
+
+    Here are all the known metrics, grouped by analysis type:
+
+    Peer Analysis:
+    - NVT Ratio, Sharpe Ratio, Price/Volume Ratio, Mayer Multiple, Speculative Signal, Price Stability Ratio, RSI, MACD Histogram
+
+    Fundamental Analysis:
+    - NVT Ratio, Price/Volume Ratio, Market Cap Growth Rate, Volume CAGR, Liquidity Ratio, Mayer Multiple, Price Momentum, Volume Momentum, Volatility-Adjusted Market Cap, Turnover Ratio, Price Stability Ratio, Volume-to-Price Ratio, Discounted Expected Utility Value, Price to Volatility Cost, Regulatory Discount
+
+    Quantitative Analysis:
+    - NVT Ratio, Price/Volume Ratio, Sharpe Ratio, Current Utility Value, Discounted Expected Utility Value, Volume CAGR, Volume Composition (Buy), Volume Composition (Sell), Volatility Reduction, Price Momentum, Risk-Adjusted Volume Discount, Trading Volume, Volume Volatility, Price Stability Ratio, Volume-to-Price Ratio, Price Correlation, Mayer Multiple, Price DCF Intrinsic Value, Price DCF Valuation Ratio, Price to Volatility Cost, Regulatory Discount, Price/Volume Ratio (Alt)
+
+    Technical Analysis:
+    - SMA 50-day, EMA 20-day, RSI, MACD Histogram, Bollinger Bands Width, ATR (Average True Range), OBV (On-Balance Volume), VWAP (Volume Weighted Average Price), Price ROC (Rate of Change), Stochastic %K, Williams %R, Momentum, Volume Oscillator, Chande Momentum Oscillator, Price Channel Breakout
+
+    Respond in the following JSON format
+    If any part is not present in the user query, use an empty list [] or an empty string "".
+    
+    Example 1:
+    User Query: "Can you show Ethereum's NVT Ratio and Trading Volume over the last week?"
+    Response:
+    {{
+        "coin": ["Ethereum"],
+        "metric": ["NVT Ratio", "Trading Volume"],
+        "time_frame": "last week",
+        "analysis_type": ["Peer", "Quantitative"]
+    }}
+    Example 2:
+    User Query: "I want to see Bitcoin's RSI and Bollinger Bands Width for the past 30 days."
+    Response:
+    {{
+        "coin": ["Bitcoin"],
+        "metric": ["RSI", "Bollinger Bands Width"],
+        "time_frame": "last 30 days",
+        "analysis_type": ["Peer", "Technical"]
+    }}
+    
+    USER QUERY: {query}
+    """ 
+    try:
+        response = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=1024,
+            temperature=0.5
+        )
+        raw_output = response.choices[0].message.content
+        # Extract JSON block using regex
+        json_match = re.search(r"\{[\s\S]*?\}", raw_output)
+        if json_match:
+            json_str = json_match.group(0)
+            return json.loads(json_str)
+        else:
+            raise ValueError("No JSON object found in the LLM response.")
+    except Exception as e:
+        return f"Error connecting to Groq: {str(e)}"
 
 # Function to parse user query
 def parse_query(query):
@@ -244,64 +319,64 @@ st.write("Enter a query (e.g., 'Performance peer analysis on BTC coin', 'Fundame
 query = st.text_input("Your Query:", "")
 
 if query:
+    st.subheader("Groq Analysis")
+    # st.write(json.dumps(extract_llm_query(query)), indent=4)
+    st.write(extract_llm_query(query))
+
     # Parse query
-    parsed_query = parse_query(query)
-    coin = parsed_query["coin"]
-    analysis = parsed_query["analysis"]
-    days = parsed_query["days"]
-    start_date = parsed_query["start_date"]
-    end_date = parsed_query["end_date"]
+    # parsed_query = parse_query(query)
+    # coin = parsed_query["coin"]
+    # analysis = parsed_query["analysis"]
+    # days = parsed_query["days"]
+    # start_date = parsed_query["start_date"]
+    # end_date = parsed_query["end_date"]
     
-    if not coin or not analysis:
-        st.warning("Please specify a valid coin (e.g., BTC, ETH, AAVE) and analysis type (peer, fundamental, quantitative, technical).")
-    elif coin not in COIN_CONFIG:
-        st.warning(f"Coin {coin} not supported. Choose from {', '.join(COIN_CONFIG.keys())}.")
-    else:
-        st.subheader(f"Running {analysis.capitalize()} Analysis for {coin}")
+    # if not coin or not analysis:
+    #     st.warning("Please specify a valid coin (e.g., BTC, ETH, AAVE) and analysis type (peer, fundamental, quantitative, technical).")
+    # elif coin not in COIN_CONFIG:
+    #     st.warning(f"Coin {coin} not supported. Choose from {', '.join(COIN_CONFIG.keys())}.")
+    # else:
+    #     st.subheader(f"Running {analysis.capitalize()} Analysis for {coin}")
         
-        # Configure date range
-        start_ts, end_ts = configure_dates(days, start_date, end_date)
+    #     # Configure date range
+    #     start_ts, end_ts = configure_dates(days, start_date, end_date)
         
-        # Override date parameters in scripts
-        from peer import START_DATE, END_DATE
-        from fundamental import START_DATE, END_DATE
-        from quantitative import START_DATE, END_DATE
-        from technical import START_DATE, END_DATE
-        START_DATE = start_ts
-        END_DATE = end_ts
+    #     # Override date parameters in scripts
+    #     START_DATE = start_ts
+    #     END_DATE = end_ts
         
-        # Run analysis
-        analysis_functions = {
-            "peer": run_peer_analysis,
-            "fundamental": run_fundamental_analysis,
-            "quantitative": run_quantitative_analysis,
-            "technical": run_technical_analysis
-        }
+    #     # Run analysis
+    #     analysis_functions = {
+    #         "peer": run_peer_analysis,
+    #         "fundamental": run_fundamental_analysis,
+    #         "quantitative": run_quantitative_analysis,
+    #         "technical": run_technical_analysis
+    #     }
         
-        try:
-            csv_path, plot_path = analysis_functions[analysis](coin, start_ts, end_ts)
+    #     try:
+    #         csv_path, plot_path = analysis_functions[analysis](coin, start_ts, end_ts)
             
-            # Display CSV
-            csv_data = None
-            if csv_path and os.path.exists(csv_path):
-                csv_data = pd.read_csv(csv_path)
-                st.subheader("CSV Output")
-                st.dataframe(csv_data)
+    #         # Display CSV
+    #         csv_data = None
+    #         if csv_path and os.path.exists(csv_path):
+    #             csv_data = pd.read_csv(csv_path)
+    #             st.subheader("CSV Output")
+    #             st.dataframe(csv_data)
             
-            # Display Plot (if available)
-            plot_base64 = None
-            if plot_path:
-                if os.path.exists(plot_path):
-                    st.subheader("Plot Output")
-                    st.image(plot_path, caption="Analysis Plot", use_column_width=True)
-                    plot_base64 = image_to_base64(plot_path)
-                else:
-                    st.error(f"Plot file {plot_path} not found.")
+    #         # Display Plot (if available)
+    #         plot_base64 = None
+    #         if plot_path:
+    #             if os.path.exists(plot_path):
+    #                 st.subheader("Plot Output")
+    #                 st.image(plot_path, caption="Analysis Plot", use_column_width=True)
+    #                 plot_base64 = image_to_base64(plot_path)
+    #             else:
+    #                 st.error(f"Plot file {plot_path} not found.")
             
-            # Get LLM response
-            llm_response = get_llm_response(query, csv_data, plot_base64)
-            st.subheader("Groq Analysis")
-            st.write(llm_response)
+    #         # Get LLM response
+    #         llm_response = get_llm_response(query, csv_data, plot_base64)
+    #         st.subheader("Groq Analysis")
+    #         st.write(llm_response)
             
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
+        # except Exception as e:
+        #     st.error(f"Error: {str(e)}")

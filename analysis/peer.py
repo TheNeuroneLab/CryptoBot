@@ -23,6 +23,8 @@ SUPPLIES = {
 
 # Fetch historical data
 def fetch_binance_data(symbol):
+    if not symbol.endswith("USDT"):
+        symbol = f"{symbol}USDT"
     params = {
         "symbol": symbol,
         "interval": "1d",
