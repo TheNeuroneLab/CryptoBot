@@ -1,59 +1,60 @@
 import streamlit as st
 import os
-
-from langchain_groq import ChatGroq
-from langchain.agents import initialize_agent
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import SystemMessage
-from langchain_core.messages import HumanMessage
-from tools import tools
 from dotenv import load_dotenv
 
+from langchain_groq import ChatGroq
+from langchain.agents import initialize_agent, AgentType
+from langchain_core.messages import SystemMessage
+from tools import tools
 
 load_dotenv()
-# -----------------------------------------
-# 3. Custom System Prompt
-# -----------------------------------------
 
+# -----------------------------------------
+# 1. Custom System Prompt
+# -----------------------------------------
 system_prompt_text = """
 You are a crypto analytics assistant.
-When the user asks for a crypto metric like:
-- NVT Ratio
-- Sharpe Ratio
-- Price Volume Ratio
-- Mayer Multiple
-- Market Cap Growth
 
-You MUST:
-1. Identify the correct tool from the provided list.
-2. Pass the cryptocurrency symbol (e.g., BTC, ETH) to that tool.
-3. Return ONLY the output from the tool.
+You have access to these tools:
+- nvt_ratio(symbol: str, start_date: str, end_date: str)
+- sharpe_ratio(symbol: str, start_date: str, end_date: str)
+- price_volume_ratio(symbol: str, start_date: str, end_date: str)
+- mayer_multiple(symbol: str, start_date: str, end_date: str)
+- market_cap_growth(symbol: str, start_date: str, end_date: str)
 
-Do NOT guess results. If the metric or symbol is missing, ask the user.
+Your job:
+1. Identify the correct tool from the above list based on the metric in the user’s query.
+2. Extract the cryptocurrency symbol (BTC, ETH, etc.).
+3. Determine the period of time:
+   - If both start and end dates are given, use them.
+   - If only one date is given, use it as both start_date and end_date.
+   - If a natural period like "last 7 days" or "past month" is given, choose the exact start_date and end_date based on today’s date.
+   - Dates must be in DD/MM/YYYY format.
+4. Call the chosen tool directly with the extracted `symbol`, `start_date`, and `end_date`.
+5. If the query is missing the metric, symbol, or date, ask the user for the missing detail before calling the tool.
+6. Do not explain what you are doing — either call the function or ask for missing details.
 """
 
 # -----------------------------------------
-# 5. Set up Groq LLM
+# 2. Set up Groq LLM
 # -----------------------------------------
-
 llm = ChatGroq(
     model_name="deepseek-r1-distill-llama-70b",
-    api_key=os.getenv("GROQ_API_KEY"),  # replace with your real API key
+    api_key=os.getenv("GROQ_API_KEY"),
     temperature=0,
 )
 
 # -----------------------------------------
-# 6. Create Agent + Memory
+# 3. Create Agent (supports multiple params)
 # -----------------------------------------
-
 agent = initialize_agent(
     tools,
     llm,
-    agent="chat-conversational-react-description",  # Conversational + tool description based
+    agent="openai-functions",  # supports multi-argument tools
     verbose=True,
     handle_parsing_errors=True,
     agent_kwargs={
-        "extra_prompt_messages": [system_prompt_text]
+        "extra_prompt_messages": [SystemMessage(content=system_prompt_text)]
     }
 )
 
@@ -64,13 +65,12 @@ def run_query(user_input, chat_history=[]):
     })
 
 # -----------------------------------------
-# 7. Streamlit UI
+# 4. Streamlit UI
 # -----------------------------------------
-
 if __name__ == "__main__":
     chat_history = []
     st.title("CryptoBot: Dynamic Crypto Analysis")
-    st.write("Enter a query (e.g., 'Performance peer analysis on BTC coin', 'Fundamental analysis for ETH last 6 months').")
+    st.write("Enter a query (e.g., 'NVT Ratio for BTC from 01/01/2024 to 31/01/2024').")
 
     query = st.text_input("Your Query:", "")
 

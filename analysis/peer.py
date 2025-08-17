@@ -20,16 +20,25 @@ SUPPLIES = {
     "UNIUSDT": 600000000,  # Uniswap
     "LINKUSDT": 500000000  # Chainlink
 }
+# Convert to timestamp in milliseconds
+def date_to_timestamp_ms(date_str):
+    # Parse date in DD/MM/YYYY format
+    dt = datetime.strptime(date_str, "%d/%m/%Y")
+    # Convert to timestamp in milliseconds
+    return int(dt.timestamp() * 1000)
+
 
 # Fetch historical data
-def fetch_binance_data(symbol):
+def fetch_binance_data(symbol, start_date, end_date):
     if not symbol.endswith("USDT"):
         symbol = f"{symbol}USDT"
+    start_time = date_to_timestamp_ms(start_date)
+    end_time = date_to_timestamp_ms(end_date)
     params = {
         "symbol": symbol,
         "interval": "1d",
-        "startTime": START_DATE,
-        "endTime": END_DATE,
+        "startTime": start_time,
+        "endTime": end_time,
         "limit": 1000
     }
     url = f"{BINANCE_API_URL}/klines"
