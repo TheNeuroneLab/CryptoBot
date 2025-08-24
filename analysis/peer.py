@@ -21,22 +21,25 @@ SUPPLIES = {
     "LINKUSDT": 500000000  # Chainlink
 }
 # Convert to timestamp in milliseconds
-def date_to_timestamp_ms(date_str):
-    # Parse date in DD/MM/YYYY format
-    dt = datetime.strptime(date_str, "%d/%m/%Y")
-    # Convert to timestamp in milliseconds
+def date_to_timestamp_ms(date_str: str) -> int:
+    """
+    Convert date string in 'YYYY-MM-DD' format to Unix timestamp in milliseconds.
+    """
+    dt = datetime.strptime(date_str, "%Y-%m-%d")
     return int(dt.timestamp() * 1000)
 
 
 # Fetch historical data
-def fetch_binance_data(symbol, start_date, end_date):
+def fetch_binance_data(symbol, interval, start_date, end_date):
     if not symbol.endswith("USDT"):
         symbol = f"{symbol}USDT"
     start_time = date_to_timestamp_ms(start_date)
     end_time = date_to_timestamp_ms(end_date)
+    if interval == "":
+        interval = "1d"
     params = {
         "symbol": symbol,
-        "interval": "1d",
+        "interval": interval,
         "startTime": start_time,
         "endTime": end_time,
         "limit": 1000

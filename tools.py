@@ -1,3 +1,5 @@
+import re
+import math
 from analysis.peer import (
     fetch_binance_data, calculate_nvt_ratio, calculate_sharpe_ratio,
     calculate_price_volume_ratio, calculate_mayer_multiple
@@ -5,110 +7,84 @@ from analysis.peer import (
 from analysis.fundamental import (
     calculate_market_cap_growth
 )
-from langchain.tools import StructuredTool
-from pydantic import BaseModel, Field
+from langchain.tools import tool
 
-# -----------------------------------------
-# Shared Input Schema
-# -----------------------------------------
-class BinanceInput(BaseModel):
-    symbol: str = Field(..., description="Cryptocurrency symbol (e.g., BTC, ETH)")
-    start_date: str = Field(..., description="Start date in DD/MM/YYYY format")
-    end_date: str = Field(..., description="End date in DD/MM/YYYY format")
+# -----------------------------
+# Regex Parser
+# -----------------------------
+def parse_metric_input(input_str: str):
+    """
+    Parse string dạng:
+    "symbol=XRPUSDT, interval=1m, startTime=2024-01-01, endTime=2024-01-31"
 
-# -----------------------------------------
-# Tool Functions
-# -----------------------------------------
-def nvt_ratio_fn(symbol: str, start_date: str, end_date: str) -> float:
-    df = fetch_binance_data(symbol, start_date, end_date)
-    supply = 21000000  # Static for BTC; can be made dynamic
-    return calculate_nvt_ratio(df, supply)
+    Return:
+        (symbol, interval, startTime, endTime)
+    """
+    pattern = r'symbol=([^,]+)(?:, interval=([^,]*))?(?:, startTime=([^,]*))?(?:, endTime=([^,]*))?'
+    match = re.match(pattern, input_str.strip())
 
-def sharpe_ratio_fn(symbol: str, start_date: str, end_date: str) -> float:
-    df = fetch_binance_data(symbol, start_date, end_date)
-    return calculate_sharpe_ratio(df)
+    if not match:
+        return None  # Invalid input format
 
-def price_volume_ratio_fn(symbol: str, start_date: str, end_date: str) -> float:
-    df = fetch_binance_data(symbol, start_date, end_date)
-    return calculate_price_volume_ratio(df)
+    return (
+        match.group(1),  # symbol (string, bắt buộc)
+        match.group(2) or "1d",  # interval (default = 1d)
+        match.group(3) or "",    # startTime (timestamp string)
+        match.group(4) or ""     # endTime (timestamp string)
+    )
 
-def mayer_multiple_fn(symbol: str, start_date: str, end_date: str) -> float:
-    df = fetch_binance_data(symbol, start_date, end_date)
-    return calculate_mayer_multiple(df)
+# -----------------------------
+# Tool Functions (ReAct friendly)
+# -----------------------------
 
-def market_cap_growth_fn(symbol: str, start_date: str, end_date: str) -> float:
-    df = fetch_binance_data(symbol, start_date, end_date)
-    return calculate_market_cap_growth(df)
+@tool("nvt_ratio")
+def nvt_ratio(input_str: str) -> str:
+    """Calculate the NVT ratio."""
+    symbol, interval, startTime, endTime = parse_metric_input(input_str)
+    df = fetch_binance_data(symbol, interval, startTime, endTime)
+    supply = 21000000  # Static for BTC
+    value = calculate_nvt_ratio(df, supply)
+    return value
 
-# -----------------------------------------
-# Structured Tools
-# -----------------------------------------
-nvt_ratio = StructuredTool.from_function(
-    func=nvt_ratio_fn,
-    name="nvt_ratio",
-    description=(
-        "Calculate the Network Value to Transactions (NVT) ratio for a cryptocurrency "
-        "between the given start and end dates. The NVT ratio is the market cap divided "
-        "by transaction volume and is often used to assess whether a cryptocurrency is "
-        "overvalued or undervalued relative to its transaction activity. "
-        "Use when analyzing long-term valuation trends."
-    ),
-    args_schema=BinanceInput
-)
+@tool("sharpe_ratio")
+def sharpe_ratio(input_str: str) -> str:
+    """Calculate the Sharpe ratio."""
+    symbol, interval, startTime, endTime = parse_metric_input(input_str)
+    df = fetch_binance_data(symbol, interval, startTime, endTime)
+    value = calculate_sharpe_ratio(df)
+    return value
 
-sharpe_ratio = StructuredTool.from_function(
-    func=sharpe_ratio_fn,
-    name="sharpe_ratio",
-    description=(
-        "Calculate the Sharpe ratio for a cryptocurrency between the given start and end dates. "
-        "The Sharpe ratio measures risk-adjusted returns by comparing the average return to the "
-        "volatility. Use when you want to evaluate the performance of an asset compared to its risk."
-    ),
-    args_schema=BinanceInput
-)
+@tool("price_volume_ratio")
+def price_volume_ratio(input_str: str) -> str:
+    """Calculate the Price-to-Volume ratio."""
+    symbol, interval, startTime, endTime = parse_metric_input(input_str)
+    df = fetch_binance_data(symbol, interval, startTime, endTime)
+    value = calculate_price_volume_ratio(df)
+    return value
 
-price_volume_ratio = StructuredTool.from_function(
-    func=price_volume_ratio_fn,
-    name="price_volume_ratio",
-    description=(
-        "Calculate the Price-to-Volume ratio for a cryptocurrency between the given start and end dates. "
-        "This ratio compares the asset's price to its trading volume, helping identify liquidity trends "
-        "and potential overbought/oversold conditions. Use when analyzing market activity strength."
-    ),
-    args_schema=BinanceInput
-)
+@tool("mayer_multiple")
+def mayer_multiple(input_str: str) -> str:
+    """Calculate the Mayer Multiple."""
+    symbol, interval, startTime, endTime = parse_metric_input(input_str)
+    df = fetch_binance_data(symbol, interval, startTime, endTime)
+    value = calculate_mayer_multiple(df)
+    return value
 
-mayer_multiple = StructuredTool.from_function(
-    func=mayer_multiple_fn,
-    name="mayer_multiple",
-    description=(
-        "Calculate the Mayer Multiple for a cryptocurrency between the given start and end dates. "
-        "The Mayer Multiple is the current price divided by its 200-day moving average. "
-        "It is often used to identify potential buying or selling points based on historical averages."
-    ),
-    args_schema=BinanceInput
-)
+@tool("market_cap_growth")
+def market_cap_growth(input_str: str) -> str:
+    """Calculate the Market Cap Growth."""
+    symbol, interval, startTime, endTime = parse_metric_input(input_str)
+    df = fetch_binance_data(symbol, interval, startTime, endTime)
+    value = calculate_market_cap_growth(df)
+    return value
 
-market_cap_growth = StructuredTool.from_function(
-    func=market_cap_growth_fn,
-    name="market_cap_growth",
-    description=(
-        "Calculate the market capitalization growth rate for a cryptocurrency between the given start and end dates. "
-        "Market cap growth shows how quickly the total value of the network is increasing or decreasing over time. "
-        "Use when analyzing adoption trends or overall market expansion."
-    ),
-    args_schema=BinanceInput
-)
-
-
-
-# -----------------------------------------
+# -----------------------------
 # Export Tools List
-# -----------------------------------------
+# -----------------------------
 tools = [
     nvt_ratio,
     sharpe_ratio,
     price_volume_ratio,
     mayer_multiple,
-    market_cap_growth
+    market_cap_growth,
 ]
