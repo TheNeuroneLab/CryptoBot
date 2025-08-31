@@ -13,6 +13,7 @@ from analysis.quantitative import calculate_cuv, calculate_volume_composition, c
 from analysis.technical import calculate_sma_50, calculate_ema_20, calculate_bollinger_width, calculate_atr, calculate_obv, calculate_vwap, calculate_roc, calculate_stochastic_k, calculate_williams_r, calculate_momentum, calculate_volume_oscillator, calculate_cmo, calculate_channel_breakout
 
 load_dotenv()
+
 # Binance API setup
 BINANCE_API_URL = "https://api.binance.com/api/v3"
 
