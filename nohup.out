@@ -1,4 +1,0 @@
-Enter your query (or press Enter for default): Traceback (most recent call last):
-  File "/Users/admin/LG/CryptoBot/test.py", line 106, in <module>
-    user_input = input("Enter your query (or press Enter for default): ").strip()
-KeyboardInterrupt
