@@ -12,7 +12,9 @@ from prompt.prompts import extraction_prompt, natural_prompt, merge_prompt  # Im
 
 load_dotenv()
 
-# LLM Setup (for intent extraction)
+# -------------------------
+# LLM Setup
+# -------------------------
 llm = ChatGroq(
     model="llama-3.3-70b-versatile",
     api_key=os.getenv("GROQ_API_KEY"),
@@ -20,18 +22,19 @@ llm = ChatGroq(
     max_tokens=1024,
 )
 
-# LLM for natural language compilation
 llm_natural = ChatGroq(
     model="llama-3.3-70b-versatile",
     api_key=os.getenv("GROQ_API_KEY"),
-    temperature=0.2,  # Slightly higher for natural phrasing
+    temperature=0.2,
     max_tokens=512,
 )
 
 # Current date
 current_date = datetime.date.today().strftime("%Y-%m-%d")  # 2025-09-01
 
-# Step 1: Structured Intent Extraction
+# -------------------------
+# Intent Extraction Model
+# -------------------------
 class QueryIntent(BaseModel):
     metrics: list[str] = Field(description="List of metrics or analysis types requested, e.g., ['nvt ratio', 'sharpe ratio', 'price history']")
     symbol: str = Field(description="The crypto symbol, e.g., 'BTC', 'ETH'")
@@ -40,14 +43,12 @@ class QueryIntent(BaseModel):
     end_date: str = Field(default="", description="End date in YYYY-MM-DD. Leave empty if not specified.")
 
 extraction_chain = extraction_prompt | llm | JsonOutputParser()
-
-# Step 2: Natural Language Compilation
 natural_chain = natural_prompt | llm_natural
-
-# Step 3: Merge Chain
 merge_chain = merge_prompt | llm_natural
 
-# Step 4: Tool Mapping
+# -------------------------
+# Tool Mapping
+# -------------------------
 tool_map = {
     "nvt ratio": "nvt_ratio",
     "sharpe ratio": "sharpe_ratio",
@@ -58,11 +59,13 @@ tool_map = {
     "price history": "price_history",
 }
 
+# -------------------------
+# Main Query Function
+# -------------------------
 def run_query(user_input):
     print(f"\nProcessing query: {user_input}")
-    
     try:
-        # Step 1: Extract intent
+        # Step 1: Extract Intent
         intent_raw = extraction_chain.invoke({
             "query": user_input,
             "current_date": current_date,
@@ -70,10 +73,10 @@ def run_query(user_input):
         })
         intent = QueryIntent(**intent_raw)
         print(f"Extracted Intent: {intent.dict()}")
-        
+
         if not intent.metrics or all(m.lower() == "unknown" for m in intent.metrics):
             return f"Sorry, no valid metrics found. Supported: {list(tool_map.keys())}"
-        
+
         # Prepare shared parameters
         symbol = intent.symbol.upper()
         if not symbol.endswith("USDT"):
@@ -81,65 +84,58 @@ def run_query(user_input):
         interval = intent.interval
         start_date = intent.start_date
         end_date = intent.end_date
-        
-        natural_responses = []
-        
+
+        results = []
+
         for metric in intent.metrics:
-            metric_lower = metric.lower()
-            
-            # Step 2: Select tool
-            tool_name = next((v for k, v in tool_map.items() if k in metric_lower), None)
+            metric_lower = metric.lower().strip()
+            tool_name = tool_map.get(metric_lower)
             if not tool_name:
-                natural_responses.append(f"Unknown metric: {metric}. Supported: {list(tool_map.keys())}")
+                results.append({"metric": metric, "error": f"Unknown metric. Supported: {list(tool_map.keys())}"})
                 continue
             
             print(f"Selected Tool for {metric}: {tool_name}")
-            
-            # Step 3: Format input
+
+            tool_instance = next((t for t in tools if t.name == tool_name), None)
+            if not tool_instance:
+                results.append({"metric": metric, "error": f"Tool not found: {tool_name}"})
+                continue
+
             input_str = f"symbol={symbol}, interval={interval}, startTime={start_date}, endTime={end_date}"
-            print(f"Formatted Input for {metric}: {input_str}")
-            
-            # Step 4: Call the tool
-            tool = next((t for t in tools if t.name == tool_name), None)
-            if not tool:
-                natural_responses.append(f"Tool not found: {tool_name}")
-                continue
-            
-            result = tool.invoke(input_str)
-            # Pretty-print JSON result for debugging
+            tool_output = tool_instance.invoke(input_str)
+
+            # Parse tool output safely
             try:
-                result_json = json.loads(result)
-                print(f"\nJSON Result for {metric}:\n{json.dumps(result_json, indent=2)}")
-            except json.JSONDecodeError:
-                print(f"\nJSON Result for {metric}: {result}")
-                natural_responses.append(f"Error processing {metric}: Invalid tool output")
-                continue
-            
-            # Step 5: Compile natural language response
-            natural_response = natural_chain.invoke({"json_data": result}).content
-            print(f"\nNatural Language Response for {metric}:\n{natural_response}")
-            natural_responses.append(natural_response)
-        
-        # Step 6: Merge responses if multiple
-        if len(natural_responses) == 0:
+                tool_output_json = json.loads(tool_output) if isinstance(tool_output, str) else tool_output
+            except Exception:
+                tool_output_json = {"raw": str(tool_output)}
+
+            results.append({"metric": metric, "tool_result": tool_output_json})
+
+        if not results:
             return "No valid responses generated."
-        elif len(natural_responses) == 1:
-            return natural_responses[0]
+
+        # Step 2: Generate natural language response
+        if len(results) == 0:
+            return "No valid metrics to process."
+        elif len(results) == 1:
+            natural_response = natural_chain.invoke({"json_data": results[0]}).content
+            return natural_response
         else:
-            merged_input = {
-                "responses": "\n\n".join([f"Response {i+1}: {resp}" for i, resp in enumerate(natural_responses)]),
-                "query": user_input
-            }
-            merged_response = merge_chain.invoke(merged_input).content
-            print(f"\nMerged Response:\n{merged_response}")
-            return merged_response
-    
+            merged_json = {"json_data": results}
+            natural_response = natural_chain.invoke(merged_json).content
+            return natural_response
+
     except Exception as e:
         print(f"Error: {str(e)}")
         return f"Error processing query: {str(e)}"
 
+# -------------------------
+# Run as script
+# -------------------------
 if __name__ == "__main__":
     test_query = "I want to know BTC price from July 1 to July 20 2024"
     user_input = input("Enter your query (or press Enter for default): ").strip()
     query = user_input if user_input else test_query
-    run_query(query)
+    response = run_query(query)
+    print(f"\nFinal Response:\n{response}")
