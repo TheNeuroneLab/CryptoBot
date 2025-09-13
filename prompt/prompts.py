@@ -1,10 +1,13 @@
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.prompts import PromptTemplate
 
-# Step 1: Structured Intent Extraction
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from langchain_core.prompts import ChatPromptTemplate
+import datetime
+
+current_date = datetime.date.today().strftime("%Y-%m-%d")
+
 extraction_prompt = ChatPromptTemplate.from_template("""
 You are an expert at extracting intent from user queries about cryptocurrency metrics. Given a user query, identify the requested metrics (e.g., 'nvt ratio', 'sharpe ratio', 'price history') and other parameters. Always output a JSON object with a 'metrics' field as a list, even if only one metric is detected. If no valid metric is recognized, use ['unknown']. Supported metrics: {supported_metrics}.
 
@@ -31,12 +34,11 @@ Output: ```json
 }}
 """)
 
-# Step 2: Natural Language Compilation
 natural_prompt = ChatPromptTemplate.from_template("""
 You are a cryptofinance analyst. 
 You will receive financial data in JSON format.
 Interpret the data into a clear, concise, and natural language response for the end user. 
-Focus on exploiting insights and summarizing the key information (e.g., metric value, price trends, momentum, summary statistics) in a profesisonal manner.
+Focus on exploiting insights and summarizing the key information (e.g., metric value, price trends, momentum, summary statistics) in a professional manner.
 State relevant details (e.g. metric name, symbol, date range, interval, etc.) if provided.
 
 JSON Data:
@@ -45,29 +47,26 @@ JSON Data:
 Output a professional response.
 """)
 
-# Step 3: Merge
-merge_prompt = PromptTemplate(
-    input_variables=["responses", "query"],
-    template="""Original query: {query}
+leader_prompt = ChatPromptTemplate.from_template("""
+You are a leader agent that decides which workflow to route the user query to. Your goal is to classify the query accurately and choose the most appropriate workflow.
 
-You are given multiple natural language responses for different metrics about a cryptocurrency. Merge these into a single, cohesive, and concise natural language response. Avoid repetition, organize logically (e.g., sections per metric or a unified summary), and ensure the response is user-friendly and clear.
+Available workflows:
+- crypto_metrics: For queries requesting cryptocurrency analysis, metrics (e.g., NVT ratio, Sharpe ratio, Mayer multiple, price history, market cap growth), or data for specific symbols like BTC, ETH, etc.
+- irrelevant_question: For off-topic queries, chit-chat, or anything not related to cryptocurrency analysis or financial detection.
+- financial_detection: For queries involving general financial advice, scam detection, investment recommendations, or broader financial topics outside of specific crypto metrics.
 
-Responses:
-{responses}
+User query: {query}
 
-Output a single merged natural language response:
-"""
-)
+Respond with a JSON object containing only the workflow key, e.g., {{"workflow": "crypto_metrics"}}.
+Do not add extra text or explanations.
+""")
 
+irrelevant_prompt = ChatPromptTemplate.from_template("""
+You are a polite assistant handling irrelevant or off-topic user queries. The query does not relate to cryptocurrency metrics or financial analysis. Respond in a friendly, professional manner, gently informing the user that their question is outside the system's scope and suggesting they ask about cryptocurrency metrics (e.g., NVT ratio, Sharpe ratio, price history) or financial topics. If the query has a clear topic, tailor the response to acknowledge it briefly.
 
-analysis_type = """Here are the supported analysis types:
-- Price History: Historical price data over a specified date range.
-- NVT Ratio: Network Value to Transactions ratio, indicating market valuation relative to transaction volume.
-- Sharpe Ratio: Measure of risk-adjusted return, calculated as the average return minus the risk-free rate divided by the standard deviation of return.
-- Volatility: Statistical measure of the dispersion of returns for a given security or market index.
-- Market Cap: Total market value of a cryptocurrency's circulating supply.
-- Transaction Volume: Total value of transactions over a specified period.
-- Active Addresses: Number of unique addresses involved in transactions over a specified period.
-- Hash Rate: Measure of computational power used in mining and processing transactions on the blockchain.
-- Supply Metrics: Information about circulating supply, total supply, and maximum supply of a cryptocurrency.
-"""
+User query: {query}
+
+Output a concise, natural language response.
+Example for query "What's the weather like?":
+"Sorry, I can't help with weather updates. My expertise is in cryptocurrency analysis. Would you like to know about metrics like BTC price history or NVT ratio?"
+""")

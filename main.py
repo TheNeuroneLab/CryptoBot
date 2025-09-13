@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # Ensure the current directory is in sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import json
 import datetime
 from dotenv import load_dotenv
@@ -8,29 +8,21 @@ from langchain_groq import ChatGroq
 from pydantic.v1 import BaseModel, Field
 from langchain_core.output_parsers import JsonOutputParser
 from tools.tools import tools
-from prompt.prompts import extraction_prompt, natural_prompt, merge_prompt  # Import prompts from prompts.py
-
+from prompt.prompts import extraction_prompt, natural_prompt, leader_prompt, irrelevant_prompt
+from utils.llm_utils import llm
+from tools.map import tool_map
 load_dotenv()
 
-# -------------------------
-# LLM Setup
-# -------------------------
-llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
-    api_key=os.getenv("GROQ_API_KEY"),
-    temperature=0,
-    max_tokens=1024,
-)
-
-llm_natural = ChatGroq(
-    model="llama-3.3-70b-versatile",
-    api_key=os.getenv("GROQ_API_KEY"),
-    temperature=0.2,
-    max_tokens=512,
-)
-
 # Current date
-current_date = datetime.date.today().strftime("%Y-%m-%d")  # 2025-09-01
+current_date = datetime.date.today().strftime("%Y-%m-%d")
+
+# -------------------------
+# Leader Decision Model and Chain
+# -------------------------
+class LeaderDecision(BaseModel):
+    workflow: str = Field(description="The workflow to route to, e.g., 'crypto_metrics', 'irrelevant_question', 'financial_detection'")
+
+leader_chain = leader_prompt | llm | JsonOutputParser()
 
 # -------------------------
 # Intent Extraction Model
@@ -43,27 +35,15 @@ class QueryIntent(BaseModel):
     end_date: str = Field(default="", description="End date in YYYY-MM-DD. Leave empty if not specified.")
 
 extraction_chain = extraction_prompt | llm | JsonOutputParser()
-natural_chain = natural_prompt | llm_natural
-merge_chain = merge_prompt | llm_natural
+natural_chain = natural_prompt | llm
+irrelevant_chain = irrelevant_prompt | llm
 
 # -------------------------
-# Tool Mapping
+# Workflow Functions
 # -------------------------
-tool_map = {
-    "nvt ratio": "nvt_ratio",
-    "sharpe ratio": "sharpe_ratio",
-    "price volume ratio": "price_volume_ratio",
-    "mayer multiple": "mayer_multiple",
-    "market cap growth": "market_cap_growth",
-    "price": "price_history",
-    "price history": "price_history",
-}
-
-# -------------------------
-# Main Query Function
-# -------------------------
-def run_query(user_input):
-    print(f"\nProcessing query: {user_input}")
+def crypto_metrics_workflow(user_input):
+    """The original workflow for crypto metrics analysis."""
+    print(f"\nRunning crypto_metrics workflow for query: {user_input}")
     try:
         # Step 1: Extract Intent
         intent_raw = extraction_chain.invoke({
@@ -127,7 +107,51 @@ def run_query(user_input):
             return natural_response
 
     except Exception as e:
-        print(f"Error: {str(e)}")
+        print(f"Error in crypto_metrics_workflow: {str(e)}")
+        return f"Error processing query: {str(e)}"
+
+def irrelevant_question_workflow(user_input):
+    """Workflow for handling irrelevant questions using LLM."""
+    print(f"\nRunning irrelevant_question workflow for query: {user_input}")
+    try:
+        response = irrelevant_chain.invoke({"query": user_input}).content
+        return response
+    except Exception as e:
+        print(f"Error in irrelevant_question_workflow: {str(e)}")
+        return f"Sorry, I couldn't process your request. Please ask about cryptocurrency metrics like NVT ratio or price history."
+
+def financial_detection_workflow(user_input):
+    """Placeholder workflow for financial detection."""
+    print(f"\nRunning financial_detection workflow for query: {user_input}")
+    return "Financial intent detected in your query. For crypto-specific metrics, please rephrase. For general financial advice, consult a professional."
+
+# Workflow dispatcher
+workflows = {
+    "crypto_metrics": crypto_metrics_workflow,
+    "irrelevant_question": irrelevant_question_workflow,
+    "financial_detection": financial_detection_workflow,
+}
+
+# -------------------------
+# Main Query Function with Leader
+# -------------------------
+def run_query(user_input):
+    print(f"\nProcessing query: {user_input}")
+    try:
+        # Step 0: Leader Decision
+        decision_raw = leader_chain.invoke({"query": user_input})
+        decision = LeaderDecision(**decision_raw)
+        print(f"Leader Decision: {decision.workflow}")
+
+        if decision.workflow not in workflows:
+            return f"Unknown workflow selected: {decision.workflow}. Please check the leader prompt."
+
+        # Route to the selected workflow
+        selected_workflow = workflows[decision.workflow]
+        return selected_workflow(user_input)
+
+    except Exception as e:
+        print(f"Error in run_query: {str(e)}")
         return f"Error processing query: {str(e)}"
 
 # -------------------------
