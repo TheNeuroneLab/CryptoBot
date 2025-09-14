@@ -91,7 +91,8 @@ def crypto_metrics_workflow(user_input):
                 tool_output_json = {"raw": str(tool_output)}
 
             results.append({"metric": metric, "tool_result": tool_output_json})
-
+            print(f"result of {str(metric)}: {str(tool_output_json)}")
+            
         if not results:
             return "No valid responses generated."
 

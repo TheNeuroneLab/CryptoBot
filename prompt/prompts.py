@@ -22,6 +22,26 @@ Output JSON with:
 - start_date: Start date in YYYY-MM-DD (empty string if not specified)
 - end_date: End date in YYYY-MM-DD (empty string if not specified)
 
+Date handling rules:
+1. If the user provides explicit dates (e.g., "from July 1 to July 20 2024"), use them directly.
+2. If the user uses relative terms:
+   - "today" or "current":
+     → end_date = {current_date}
+     → start_date = end_date - 1 × interval
+   - "yesterday":
+     → end_date = {current_date} - 1 × interval
+     → start_date = end_date - 1 × interval
+   - "last N days":
+     → end_date = {current_date}
+     → start_date = end_date - N × interval
+   - "past week" or "last 7 days":
+     → end_date = {current_date}
+     → start_date = end_date - 7 × interval
+   - "past month" or "last 30 days":
+     → end_date = {current_date}
+     → start_date = end_date - 30 × interval
+3. If no date is mentioned at all, leave start_date and end_date as empty strings.
+
 Example:
 Query: "I want to know BTC price and NVT from July 1 to July 20 2024"
 Output: ```json
