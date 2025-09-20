@@ -14,8 +14,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Page Config
 # ---------------------------
 st.set_page_config(
-    page_title="Crypto Analysis Agent",
-    page_icon="💹",
+    page_title="Biracle",
+    page_icon="🌞",
     layout="wide"
 )
 
@@ -45,7 +45,7 @@ st.markdown(
             Crypto Analysis Agent
         </h1>
         <p style="color: gray; font-size: 1rem; margin-top: 0;">
-            Your AI assistant for crypto insights — {today}
+            Your AI assistant for precise crypto insights — {today}
         </p>
     </div>
     """,
