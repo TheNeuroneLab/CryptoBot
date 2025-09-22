@@ -100,12 +100,19 @@ def crypto_metrics_workflow(user_input):
         if len(results) == 0:
             return "No valid metrics to process."
         elif len(results) == 1:
-            natural_response = natural_chain.invoke({"json_data": results[0]}).content
+            natural_response = natural_chain.invoke({
+                "query": user_input,
+                "json_data": results[0]
+            }).content
             return natural_response
         else:
             merged_json = {"json_data": results}
-            natural_response = natural_chain.invoke(merged_json).content
+            natural_response = natural_chain.invoke({
+                "query": user_input,
+                "json_data": merged_json["json_data"]
+            }).content
             return natural_response
+
 
     except Exception as e:
         print(f"Error in crypto_metrics_workflow: {str(e)}")

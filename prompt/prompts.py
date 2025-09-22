@@ -41,6 +41,9 @@ natural_prompt = ChatPromptTemplate.from_template(f"""
 You are a cryptofinance expert and consultant. 
 You will receive user query and financial data in JSON format. 
 
+User Query:
+{{query}}
+
 JSON Data:
 {{json_data}}      
 
