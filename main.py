@@ -8,7 +8,7 @@ from langchain_groq import ChatGroq
 from pydantic.v1 import BaseModel, Field
 from langchain_core.output_parsers import JsonOutputParser
 from tools.tools import tools
-from prompt.prompts import extraction_prompt, natural_prompt, leader_prompt, irrelevant_prompt
+from prompt.prompts import extraction_prompt, natural_prompt, leader_prompt, irrelevant_prompt, literate_prompt
 from utils.llm_utils import llm
 from tools.map import tool_map
 load_dotenv()
@@ -17,7 +17,7 @@ load_dotenv()
 current_date = datetime.date.today().strftime("%Y-%m-%d")
 
 # -------------------------
-# Leader Decision Model and Chain
+# Leader Chain
 # -------------------------
 class LeaderDecision(BaseModel):
     workflow: str = Field(description="The workflow to route to, e.g., 'crypto_metrics', 'irrelevant_question', 'financial_detection'")
@@ -37,6 +37,7 @@ class QueryIntent(BaseModel):
 extraction_chain = extraction_prompt | llm | JsonOutputParser()
 natural_chain = natural_prompt | llm
 irrelevant_chain = irrelevant_prompt | llm
+literate_chain = literate_prompt | llm
 
 # -------------------------
 # Workflow Functions
@@ -128,15 +129,29 @@ def irrelevant_question_workflow(user_input):
         print(f"Error in irrelevant_question_workflow: {str(e)}")
         return f"Sorry, I couldn't process your request. Please ask about cryptocurrency metrics like NVT ratio or price history."
 
+def literate_question_workflow(user_input):
+    """Workflow for handling irrelevant questions using LLM."""
+    print(f"\nRunning literate_question workflow for query: {user_input}")
+    try:
+        response = literate_chain.invoke({"query": user_input}).content
+        return response
+    except Exception as e:
+        print(f"Error in literate_question_workflow: {str(e)}")
+        return f"Sorry, I couldn't process your request. Please ask about cryptocurrency metrics like NVT ratio or price history."
+
+
 def financial_detection_workflow(user_input):
     """Placeholder workflow for financial detection."""
     print(f"\nRunning financial_detection workflow for query: {user_input}")
     return "Financial intent detected in your query. For crypto-specific metrics, please rephrase. For general financial advice, consult a professional."
 
-# Workflow dispatcher
+# -------------------------
+# Workflow Control
+# -------------------------
 workflows = {
     "crypto_metrics": crypto_metrics_workflow,
     "irrelevant_question": irrelevant_question_workflow,
+    "literate_question": literate_question_workflow,
     "financial_detection": financial_detection_workflow,
 }
 
