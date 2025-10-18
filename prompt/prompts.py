@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from langchain_core.prompts import ChatPromptTemplate
 import datetime
-from prompt.context import category, strategy, example_format, response_behavior, literate
+from prompt.context import category, strategy, example_format, response_behavior, literate, chart_example
 
 current_date = datetime.date.today().strftime("%Y-%m-%d")
 
@@ -81,3 +81,28 @@ Output a concise natural response.
 Do not make up data. 
 Do not be lengthy.
 """)
+
+chart_decision_prompt = ChatPromptTemplate.from_template(f"""
+You are a data visualization expert for cryptocurrency analytics.
+
+You will be given the JSON output of a metric tool (for example, price_history, volume_by_exchange, current_price, etc.).
+
+Your task:
+1. Decide if the metric can be meaningfully visualized as a chart.
+2. If yes, choose the most appropriate chart type among:
+   - "line" → for time-series data (e.g., price or volume over time)
+   - "bar" → for categorical comparison (e.g., volume per exchange)
+3. If not suitable for visualization, return {{"should_chart": false}}.
+
+Return your answer **as a single valid JSON object** — no explanations, no markdown, no code blocks.
+
+---
+
+{chart_example}
+
+---
+
+Metric JSON to analyze:
+{{metric_json}}
+""")
+

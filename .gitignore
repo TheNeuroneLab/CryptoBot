@@ -56,3 +56,5 @@ pylint-global.txt
 # Local env variables
 .env
 .env.*
+
+./volumes
