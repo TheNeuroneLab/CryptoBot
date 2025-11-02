@@ -39,7 +39,9 @@ services:
       done &&
       echo '✅ MinIO connected. Creating buckets...' &&
       (mc ls local/charts || mc mb -p local/charts) &&
-      echo '🎉 Buckets initialized successfully for chart storage.'
+      echo '🌍 Setting public-read policy for charts bucket...' &&
+      mc anonymous set download local/charts &&
+      echo '🎉 Buckets initialized successfully and made public.'
       "
     restart: on-failure
     networks:

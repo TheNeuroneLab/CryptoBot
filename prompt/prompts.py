@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from langchain_core.prompts import ChatPromptTemplate
 import datetime
-from prompt.context import category, strategy, example_format, response_behavior, literate, chart_example
+from prompt.context import category, strategy, example_format, response_behavior, literate
 
 current_date = datetime.date.today().strftime("%Y-%m-%d")
 
@@ -82,27 +82,29 @@ Do not make up data.
 Do not be lengthy.
 """)
 
-chart_decision_prompt = ChatPromptTemplate.from_template(f"""
+chart_decision_prompt = ChatPromptTemplate.from_template("""
 You are a data visualization expert for cryptocurrency analytics.
 
-You will be given the JSON output of a metric tool (for example, price_history, volume_by_exchange, current_price, etc.).
+You will be given JSON output of a crypto metric tool (like price history, trading volume, etc.).
+Your job is to decide whether the data is suitable for a chart, and if so, describe the type and axes.
 
-Your task:
-1. Decide if the metric can be meaningfully visualized as a chart.
-2. If yes, choose the most appropriate chart type among:
-   - "line" → for time-series data (e.g., price or volume over time)
-   - "bar" → for categorical comparison (e.g., volume per exchange)
-3. If not suitable for visualization, return {{"should_chart": false}}.
+Rules:
+- If it's time series data → use "line" chart with X = date/time, Y = numeric field (like close or volume).
+- If it's category comparison → use "bar" chart.
+- If not suitable → say "no chart needed".
 
-Return your answer **as a single valid JSON object** — no explanations, no markdown, no code blocks.
-
----
-
-{chart_example}
+Output your answer in natural language, not JSON.
 
 ---
 
-Metric JSON to analyze:
-{{metric_json}}
+Examples:
+- "Line chart with x=date and y=close."
+- "Bar chart with x=exchange and y=volume."
+- "No chart needed."
+
+---
+
+Metric JSON:
+{metric_json}
 """)
 

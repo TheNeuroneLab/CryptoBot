@@ -69,62 +69,7 @@ These fields must be mentioned (if applicable):
 Avoid lengthy explanations. Do not mention inapplicable fields. Be straighforward.
 """
 
-chart_example = """
-### ✅ Example 1 — Time-series metric (can be charted)
-Input:
-{
-  "metric": "price_history",
-  "data": [
-    {"date": "2025-10-01", "close": 118594.99},
-    {"date": "2025-10-02", "close": 120529.35},
-    {"date": "2025-10-03", "close": 122232.0}
-  ]
-}
 
-Output:
-{
-  "should_chart": true,
-  "chart_type": "line",
-  "x_field": "date",
-  "y_field": "close"
-}
-
----
-
-### ✅ Example 2 — Categorical metric (can be charted)
-Input:
-{
-  "metric": "volume_by_exchange",
-  "data": [
-    {"exchange": "Binance", "volume": 3029432.4},
-    {"exchange": "Coinbase", "volume": 2193021.1},
-    {"exchange": "Kraken", "volume": 1092381.2}
-  ]
-}
-
-Output:
-{
-  "should_chart": true,
-  "chart_type": "bar",
-  "x_field": "exchange",
-  "y_field": "volume"
-}
-
----
-
-### ❌ Example 3 — Single-value metric (no chart)
-Input:
-{
-  "metric": "current_price",
-  "symbol": "BTCUSDT",
-  "value": 121532.4
-}
-
-Output:
-{
-  "should_chart": false
-}
-"""
 
 
 

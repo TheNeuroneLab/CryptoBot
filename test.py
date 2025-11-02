@@ -34,6 +34,11 @@ class QueryIntent(BaseModel):
     interval: str = "1d"
     start_date: str = ""
     end_date: str = ""
+class ChartDecision(BaseModel):
+    should_chart: bool = False
+    chart_type: str = "line"
+    x_field: str = "date"
+    y_field: str = "close"
 
 extraction_chain = extraction_prompt | llm | JsonOutputParser()
 irrelevant_chain = irrelevant_prompt | llm
@@ -48,25 +53,45 @@ def handle_chart_generation(tool_result):
     if not isinstance(tool_result, dict) or "data" not in tool_result:
         print("⚠️ No valid data found for chart.")
         return None
+
     try:
-        decision_response = chart_decision_chain.invoke({
+        response = chart_decision_chain.invoke({
             "metric_json": json.dumps(tool_result, ensure_ascii=False)
-        }).content
+        }).content.strip().lower()
 
-        print("\n🤖 Chart decision raw:", decision_response)
+        print("\n🤖 Chart decision raw:", response)
 
-        json_text = decision_response.strip()
-        if "{" in json_text:
-            json_text = json_text[json_text.find("{"): json_text.rfind("}") + 1]
-        decision = json.loads(json_text)
+        decision = ChartDecision()
 
-        if decision.get("should_chart"):
-            print(f"✅ Chart approved → {decision.get('chart_type', 'line')} chart")
+        # Parse logic giống extraction-style, không cần JSON
+        if "no chart" in response:
+            decision.should_chart = False
+        else:
+            decision.should_chart = True
+            if "bar" in response:
+                decision.chart_type = "bar"
+            elif "line" in response:
+                decision.chart_type = "line"
+
+            # X-axis
+            if "exchange" in response:
+                decision.x_field = "exchange"
+            elif "date" in response:
+                decision.x_field = "date"
+
+            # Y-axis
+            if "volume" in response:
+                decision.y_field = "volume"
+            elif "close" in response:
+                decision.y_field = "close"
+
+        if decision.should_chart:
+            print(f"✅ Chart approved → {decision.chart_type} chart")
             image_url = run_plot_code_and_upload(
                 tool_result.get("data"),
-                chart_type=decision.get("chart_type", "line"),
-                x_field=decision.get("x_field", "date"),
-                y_field=decision.get("y_field", "close")
+                chart_type=decision.chart_type,
+                x_field=decision.x_field,
+                y_field=decision.y_field
             )
             print(f"📈 Chart URL: {image_url}")
             return image_url

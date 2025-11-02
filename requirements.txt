@@ -11,3 +11,4 @@ jupyter>=1.0.0
 dotenv
 langchain_groq
 langchain
+boto3

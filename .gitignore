@@ -57,4 +57,4 @@ pylint-global.txt
 .env
 .env.*
 
-./volumes
+volumes/

@@ -12,7 +12,7 @@ from datetime import datetime
 #  CONFIG (cho MinIO / S3)
 # ===============================
 
-S3_BUCKET = os.getenv("S3_BUCKET", "local-bucket")
+S3_BUCKET = os.getenv("S3_BUCKET", "charts")
 S3_REGION = os.getenv("S3_REGION", "us-east-1")
 S3_PREFIX = os.getenv("S3_PREFIX", "charts")
 
