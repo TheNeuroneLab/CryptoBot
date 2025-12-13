@@ -8,3 +8,7 @@ python-binance>=1.0.0
 scikit-learn>=1.2.0
 yfinance>=0.2.0
 jupyter>=1.0.0
+dotenv
+langchain_groq
+langchain
+boto3
