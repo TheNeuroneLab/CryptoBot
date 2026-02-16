@@ -1,0 +1,82 @@
+/* dùng các CSS variables đã có trong styles/_variables.scss */
+@use "../../styles/variables";
+
+
+.composer {
+  position: fixed;
+  width: 80%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  bottom: 0;
+  padding: 10px 0 14px;
+  z-index: 1;
+}
+
+/* khung chứa input – căn giữa, max width */
+.composer__box {
+  position: relative;
+  margin: 0 auto;
+  width: 100%;     
+}
+
+/* Textarea – glassy + autosize + không hiện scrollbar */
+.composer__textarea {
+  display: block; width: 100%;
+  border: 0.5px solid var(--border);
+  min-height: 44px;
+  max-height: 200px;
+  overflow-y: auto;           
+  scrollbar-width: none;      
+  &::-webkit-scrollbar { display: none; } 
+  resize: none;
+  outline: none;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: .98rem;
+  line-height: 1.6;
+
+  /* chừa chỗ mic (nếu có) bên trái & nút Send bên phải */
+  padding: 18px 100px 18px 20px;
+  
+  transition: box-shadow .2s ease, background-color .2s ease, border-color .2s ease;
+}
+.composer__textarea::placeholder { color: var(--muted)}
+
+@supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+  .composer__textarea {
+    background: color-mix(in srgb, #ffffff 3%, transparent);
+    backdrop-filter: blur(12px) saturate(130%);
+  }
+}
+
+.composer__textarea:hover {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #8d8d8d 60%, transparent);
+}
+.composer__textarea:focus {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #8d8d8d 60%, transparent);
+}
+
+/* Nút Send – nằm trong khung, canh giữa theo chiều dọc */
+.composer__send {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  border: none; outline: none;
+  background-color: var(--border);
+  border-radius: .5rem;
+  padding: .55rem 1rem;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0,0,0,.28);
+  transition: background-color .15s ease, box-shadow .15s ease, opacity .15s ease;
+}
+.composer__send:hover  { background: #b7b7b76f; }
+.composer__send:disabled { opacity: .6; cursor: not-allowed; }
+
+/* sm: tăng cỡ chữ nhẹ */
+@media (min-width: 640px) {
+  .composer__textarea, .composer__send { font-size: 1rem; }
+}

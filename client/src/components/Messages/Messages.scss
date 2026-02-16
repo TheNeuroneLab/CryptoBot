@@ -1,0 +1,159 @@
+.messages {
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  flex-direction: column;
+}
+
+
+.messages__list {
+  flex: 1 1 auto;
+  padding: 14px;
+  overflow-y: auto;
+  color: var(--text);
+  font-size: 0.95rem;           
+  line-height: 1.7;           
+  display: grid;
+  grid-auto-rows: min-content;
+  row-gap: 1.25rem;           
+}
+
+.message {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+}
+
+.message--user {
+  flex-direction: row-reverse;
+}
+
+.message__avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  object-fit: cover;
+  background: #9b9b9b;
+  flex: 0 0 auto;
+}
+.message--assistant .message__avatar { margin-right: .5rem; }
+.message--user .message__avatar      { margin-left: .5rem; }
+
+ .message--user .message__bubble, .message--assistant .message__bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 1rem;
+  border-radius: 8px;
+  max-width: 56rem;        
+  border: 1px solid rgba(255,255,255,.12);
+  background-clip: padding-box;
+  color: var(--text);
+  box-shadow: 0 6px 18px rgba(0,0,0,.28);
+}
+
+
+@supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+  .message__bubble {
+    background: color-mix(in srgb, #ffffff 3%, transparent);
+    backdrop-filter: blur(12px) saturate(130%);
+  }
+}
+
+.message__text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.message__actions {
+  display: flex;
+  gap: .5rem;
+  margin-top: .25rem;
+  color: var(--muted);
+}
+.message--assistant .message__actions { margin-left: .5rem; }
+.message--user .message__actions      { margin-right: .5rem; }
+
+.message__action {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  transition: color .2s ease;
+}
+.message__action:hover { color: var(--primary); }
+
+.message__icon { width: 1.25rem; height: 1.25rem; }
+
+.messages__typing {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.message__md {
+  margin: 0;
+  white-space: normal;
+
+  h1, h2, h3 { margin: .2rem 0 .7rem; line-height: 1.25; }
+  h1 { font-size: 1.35rem; }
+  h2 { font-size: 1.2rem; }
+  h3 { font-size: 1.05rem; }
+
+  ul, ol { padding-left: 1.2rem; margin: .3rem 0 .6rem; }
+  li { margin: .15rem 0; }
+
+  .md-link { color: var(--primary); text-decoration: underline; }
+  .md-strong { font-weight: 800; }
+
+  .md-code-inline {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 6px;
+    padding: .08rem .35rem;
+  }
+
+  .md-pre {
+    margin: .6rem 0;
+    padding: .75rem .9rem;
+    background: rgba(0,0,0,.35);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    overflow: auto;
+  }
+
+  .md-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: .8rem 0;
+    background: rgba(0,0,0,.06);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .md-th, .md-td {
+    padding: 12px 16px;
+    border: 1px solid rgba(255,255,255,.08);
+    vertical-align: top;
+    white-space: nowrap;
+  }
+  .md-thead .md-th {
+    font-weight: 700;
+    background: rgba(255,255,255,.06);
+  }
+  .md-tbody tr:nth-child(even) .md-td {
+    background: rgba(255,255,255,.03);
+  }
+
+  .md-hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.2), transparent);
+    margin: .8rem 0;
+  }
+}
+
+@media (min-width: 640px) {
+  .messages__list { font-size: 1rem; }
+}

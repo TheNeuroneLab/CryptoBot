@@ -165,7 +165,17 @@ def crypto_metrics_workflow(user_input):
             print(f"• {res['metric']}: {res['chart_url'] or 'no chart generated'}")
         print("=============================\n")
 
-        return results
+        lines = ["### Chart Test Results"]
+        for r in results:
+            metric = r.get("metric", "unknown")
+            url = r.get("chart_url")
+            if url:
+        # UI của bạn sẽ tự bắt URL này và render <img>
+                lines.append(f"- **{metric}**: {url}")
+            else:
+                lines.append(f"- **{metric}**: no chart generated")
+
+        return "\n".join(lines)
 
     except Exception as e:
         print(f"Error in crypto_metrics_workflow: {e}")
